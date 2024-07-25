@@ -1,0 +1,62 @@
+module RNS_Multiplication #(parameter WIDTH = 8) (
+    input wire [WIDTH-1:0] a, b,
+    output wire [WIDTH-1:0] result
+);
+
+    // Define the moduli
+    localparam M1 = 3;
+    localparam M2 = 5;
+    localparam M3 = 7;
+    localparam M = M1 * M2 * M3; // Product of moduli
+
+    // Compute residues of the inputs
+    wire [WIDTH-1:0] a1 = a % M1;
+    wire [WIDTH-1:0] a2 = a % M2;
+    wire [WIDTH-1:0] a3 = a % M3;
+    wire [WIDTH-1:0] b1 = b % M1;
+    wire [WIDTH-1:0] b2 = b % M2;
+    wire [WIDTH-1:0] b3 = b % M3;
+
+    // Compute the product residues
+    wire [WIDTH-1:0] r1 = (a1 * b1) % M1;
+    wire [WIDTH-1:0] r2 = (a2 * b2) % M2;
+    wire [WIDTH-1:0] r3 = (a3 * b3) % M3;
+
+    // Compute the multiplicative inverses
+    function [WIDTH-1:0] mod_inv(input [WIDTH-1:0] a, input [WIDTH-1:0] m);
+        integer t, newt, r, newr, q, tmp;
+        begin
+            t = 0; newt = 1;
+            r = m; newr = a;
+            while (newr != 0) begin
+                q = r / newr;
+                tmp = t;
+                t = newt;
+                newt = tmp - q * newt;
+                tmp = r;
+                r = newr;
+                newr = tmp - q * newr;
+            end
+            if (r > 1)
+                mod_inv = 0; // a is not invertible
+            else if (t < 0)
+                mod_inv = t + m;
+            else
+                mod_inv = t;
+        end
+    endfunction
+
+    // Chinese Remainder Theorem reconstruction
+    wire [WIDTH-1:0] M1_inv = mod_inv(M / M1, M1);
+    wire [WIDTH-1:0] M2_inv = mod_inv(M / M2, M2);
+    wire [WIDTH-1:0] M3_inv = mod_inv(M / M3, M3);
+
+    wire [WIDTH-1:0] crt_result;
+    assign crt_result = (r1 * (M / M1) * M1_inv + 
+                         r2 * (M / M2) * M2_inv + 
+                         r3 * (M / M3) * M3_inv) % M;
+
+    // Assign the final result
+    assign result = crt_result
+
+endmodule
